@@ -5,6 +5,7 @@
 # Rewritten to use lists instead of if-statements.
 #
 
+obj-$(CONFIG_FIRMADYNE)		+= firmadyne/
 obj-y				+= irqchip/
 obj-y				+= bus/
 
