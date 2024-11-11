@@ -4,7 +4,7 @@
 #include <linux/kmod.h>
 #include <linux/kprobes.h>
 #include <linux/mman.h>
-#include <linux/ptrace.h>
+#include <asm/linux/ptrace.h>
 #include <linux/if_vlan.h>
 #include <linux/inetdevice.h>
 #include <linux/net.h>
