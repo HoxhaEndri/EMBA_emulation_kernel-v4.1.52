@@ -309,17 +309,12 @@ static void execve_hook(struct kprobe *kp, struct pt_regs *regs) {
 	}
 }
 
-static void mknod_hook_kprobe(struct kprobe *kp, struct pt_regs *regs){
-	struct inode *dir = (struct inode *)regs->di;
-	struct dentry *dentry = (struct dentry *)regs->si;
-	umode_t mode = (umode_t)regs->dx;
-	dev_t dev = (dev_t)regs->cx;
-
+static void mknod_hook(struct kprobe *kp, struct pt_regs *regs){
+	struct dentry *dentry = regs_get_kernel_argument(regs, 1);
+	dev_t dev = regs_get_kernel_argument(regs, 3);
 	if (syscall & LEVEL_FS_W) {
 		printk(KERN_INFO MODULE_NAME": vfs_mknod[PID: %d (%s)]: file:%s major:%d minor:%d\n", task_pid_nr(current), current->comm, dentry->d_name.name, MAJOR(dev), MINOR(dev));
 	}
-
-	return 0;
 }
 
 static void br_hook(struct kprobe *kp, struct pt_regs *regs) {
@@ -331,12 +326,10 @@ static void br_hook(struct kprobe *kp, struct pt_regs *regs) {
 }
 
 static void inet_hook(struct kprobe *kp, struct pt_regs *regs) {
-	struct in_ifaddr *ifa = (struct in_ifaddr *)regs->di;
+	struct in_ifaddr *ifa = regs_get_kernel_argument(regs, 0);
 	if (syscall & LEVEL_NETWORK) {
-		PRINT_SYSCALL_INFO("__inet_insert_ifa[PID: %d (%s)]: device:%s ifa:0x%08x\n",
-						   task_pid_nr(current), current->comm, ifa->ifa_dev->dev->name, ifa->ifa_address);
+		printk(KERN_INFO MODULE_NAME": __inet_insert_ifa[PID: %d (%s)]: device:%s ifa:0x%08x\n", task_pid_nr(current), current->comm, ifa->ifa_dev->dev->name, ifa->ifa_address);
 	}
-	return 0;
 }
 
 #define HOOK_RET(a, b, c, d) \
