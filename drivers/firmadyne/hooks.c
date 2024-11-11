@@ -136,7 +136,7 @@ static void reboot_hook(struct kprobe *kp, struct pt_regs *regs) {
 		call_usermodehelper(argv_init[0], argv_init, envp_init, UMH_NO_WAIT);
 	}
 
-out:
+out: ;
 }
 
 static void mount_hook(struct kprobe *kp, struct pt_regs *regs) {
