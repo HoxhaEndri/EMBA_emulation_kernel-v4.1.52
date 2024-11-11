@@ -198,6 +198,7 @@ static void accept_hook(struct kprobe *kp, struct pt_regs *regs) {
 }
 
 static void mmap_hook(struct kprobe *kp, struct pt_regs *regs) {
+  struct file *file = regs_get_kernel_argument(regs, 0);
 	unsigned long addr = regs_get_kernel_argument(regs, 1);
 	unsigned long len = regs_get_kernel_argument(regs, 2);
 	unsigned long vm_flags = regs_get_kernel_argument(regs, 3);
