@@ -18,6 +18,24 @@
 #include "hooks.h"
 #include "hooks-private.h"
 
+#if defined(__x86_64__) || defined(__i386__)
+	#define ARCH_REG_FIRST_ARG 0
+#elif defined(__arm__)
+	#define ARCH_REG_FIRST_ARG 0
+#elif defined(__aarch64__)
+	#define ARCH_REG_FIRST_ARG 0
+#elif defined(__mips__)
+	#define ARCH_REG_FIRST_ARG 4
+#else
+	#error "Unsupported architecture"
+#endif
+
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
+//	#define GET_KERNEL_ARG(regs, n) regs_get_kernel_argument(regs, (n))
+//#else
+	#define GET_KERNEL_ARG(regs, n) regs_get_register(regs, ARCH_REG_FIRST_ARG + (n))
+//#endif
+
 /* Network related operations; e.g. bind, accept, etc */
 #define LEVEL_NETWORK (1 << 0)
 /* System operations; e.g. reboot, mount, ioctl, execve, etc */
@@ -311,8 +329,8 @@ static void execve_hook(struct kprobe *kp, struct pt_regs *regs) {
 }
 
 static void mknod_hook(struct kprobe *kp, struct pt_regs *regs){
-	struct dentry *dentry = regs_get_register(regs, 1);
-	dev_t dev = regs_get_register(regs, 3);
+	struct dentry *dentry = (struct dentry *)GET_KERNEL_ARG(regs, 1);
+	dev_t dev = (dev_t)GET_KERNEL_ARG(regs, 3);
 	if (syscall & LEVEL_FS_W) {
 		printk(KERN_INFO MODULE_NAME": vfs_mknod[PID: %d (%s)]: file:%s major:%d minor:%d\n", task_pid_nr(current), current->comm, dentry->d_name.name, MAJOR(dev), MINOR(dev));
 	}
