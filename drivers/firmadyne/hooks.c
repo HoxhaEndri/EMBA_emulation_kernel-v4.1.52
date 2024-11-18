@@ -4,7 +4,7 @@
 #include <linux/kmod.h>
 #include <linux/kprobes.h>
 #include <linux/mman.h>
-#include <asm/linux/ptrace.h>
+#include <linux/ptrace.h>
 #include <linux/if_vlan.h>
 #include <linux/inetdevice.h>
 #include <linux/net.h>
@@ -95,25 +95,27 @@
 
 static char *envp_init[] = { "HOME=/", "TERM=linux", "LD_PRELOAD=/firmadyne/libnvram.so", NULL };
 
-static void socket_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int socket_hook(struct kprobe *kp, struct pt_regs *regs) {
 	long family = (long)GET_KERNEL_ARG(regs, 0);
 	long type = (long)GET_KERNEL_ARG(regs, 1);
 	long protocol = (long)GET_KERNEL_ARG(regs, 2);
 	if (syscall & LEVEL_NETWORK) {
 		printk(KERN_INFO MODULE_NAME": sys_socket[PID: %d (%s)]: family:%d, type:%d, protocol:%d\n", task_pid_nr(current), current->comm, family, type, protocol);
 	}
+  return 0;
 }
 
-static void setsockopt_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int setsockopt_hook(struct kprobe *kp, struct pt_regs *regs) {
 	long fd = (long)GET_KERNEL_ARG(regs, 0);
 	long level = (long)GET_KERNEL_ARG(regs, 1);
 	long optname = (long)GET_KERNEL_ARG(regs, 2);
 	if (syscall & LEVEL_NETWORK) {
 		printk(KERN_INFO MODULE_NAME": sys_setsockopt[PID: %d (%s)]: fd:%d, level:%d, optname:%d\n", task_pid_nr(current), current->comm, fd, level, optname);
 	}
+  return 0;
 }
 
-static void reboot_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int reboot_hook(struct kprobe *kp, struct pt_regs *regs) {
 	long magic1 = (long)GET_KERNEL_ARG(regs, 0);
 	long magic2 = (long)GET_KERNEL_ARG(regs, 1);
 	unsigned int cmd = (unsigned int)GET_KERNEL_ARG(regs, 2);
@@ -152,19 +154,21 @@ static void reboot_hook(struct kprobe *kp, struct pt_regs *regs) {
 		call_usermodehelper(argv_init[0], argv_init, envp_init, UMH_NO_WAIT);
 	}
 
-out: ;
+out: 
+  return 0;
 }
 
-static void mount_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int mount_hook(struct kprobe *kp, struct pt_regs *regs) {
 	char *dev_name = (char *)GET_KERNEL_ARG(regs, 0);
 	char *dir_name = (char *)GET_KERNEL_ARG(regs, 1);
 	char* type_page = (char *)GET_KERNEL_ARG(regs, 2);
 	if (syscall & LEVEL_SYSTEM) {
 		printk(KERN_INFO MODULE_NAME": do_mount[PID: %d (%s)]: mountpoint:%s, device:%s, type:%s\n", task_pid_nr(current), current->comm, dir_name, dev_name, type_page);
 	}
+  return 0;
 }
 
-static void ioctl_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int ioctl_hook(struct kprobe *kp, struct pt_regs *regs) {
 	unsigned int cmd = (unsigned int )GET_KERNEL_ARG(regs, 1);
 	unsigned long arg = (unsigned long)GET_KERNEL_ARG(regs, 2);
 	if (syscall & LEVEL_SYSTEM) {
@@ -173,47 +177,53 @@ static void ioctl_hook(struct kprobe *kp, struct pt_regs *regs) {
 	//if (syscall & LEVEL_NETWORK && cmd == SIOCSIFHWADDR) {
 	//	printk(KERN_INFO MODULE_NAME": ioctl_SIOCSIFHWADDR[PID: %d (%s)]: dev:%s mac:0x%p 0x%p\n", task_pid_nr(current), current->comm, (char *)arg, *(unsigned long *)(arg + offsetof(struct ifreq, ifr_hwaddr)), *(unsigned long *)(arg + offsetof(struct ifreq, ifr_hwaddr) + 4));
 	//}
+  return 0;
 }
 
-static void unlink_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int unlink_hook(struct kprobe *kp, struct pt_regs *regs) {
 	struct dentry *dentry = (struct dentry *)GET_KERNEL_ARG(regs, 1);
 	if (syscall & LEVEL_FS_W) {
 		printk(KERN_INFO MODULE_NAME": vfs_unlink[PID: %d (%s)]: file:%s\n", task_pid_nr(current), current->comm, dentry->d_name.name);
 	}
+  return 0;
 }
 
-static void signal_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int signal_hook(struct kprobe *kp, struct pt_regs *regs) {
 	int sig = (int)GET_KERNEL_ARG(regs, 0);
 	struct task_struct *p = (struct task_struct *)GET_KERNEL_ARG(regs, 2);
 	if (syscall & LEVEL_EXEC) {
 		printk(KERN_INFO MODULE_NAME": do_send_sig_info[PID: %d (%s)]: PID:%d, signal:%u\n", task_pid_nr(current), current->comm, p->pid, sig);
 	}
+  return 0;
 }
 
-static void vlan_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int vlan_hook(struct kprobe *kp, struct pt_regs *regs) {
 	struct net_device *dev = (struct net_device *)GET_KERNEL_ARG(regs, 0);
 	if (syscall & LEVEL_NETWORK) {
 		printk(KERN_INFO MODULE_NAME": register_vlan_dev[PID: %d (%s)]: dev:%s vlan_id:%d\n", task_pid_nr(current), current->comm, dev->name, vlan_dev_vlan_id(dev));
 
 	}
+  return 0;
 }
 
-static void bind_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int bind_hook(struct kprobe *kp, struct pt_regs *regs) {
 	struct socket *sock = (struct socket *)GET_KERNEL_ARG(regs, 0);
 	struct sockaddr *uaddr = (struct sockaddr *)GET_KERNEL_ARG(regs, 1);
 	if (syscall & LEVEL_NETWORK) {
 		unsigned int sport = htons(((struct sockaddr_in *)uaddr)->sin_port);
 		printk(KERN_INFO MODULE_NAME": inet_bind[PID: %d (%s)]: proto:%s, port:%d\n", task_pid_nr(current), current->comm, sock->type == SOCK_STREAM ? "SOCK_STREAM" : (sock->type == SOCK_DGRAM ? "SOCK_DGRAM" : "SOCK_OTHER"), sport);
 	}
+  return 0;
 }
 
-static void accept_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int accept_hook(struct kprobe *kp, struct pt_regs *regs) {
 	if (syscall & LEVEL_NETWORK) {
 		printk(KERN_INFO MODULE_NAME": inet_accept[PID: %d (%s)]:\n", task_pid_nr(current), current->comm);
 	}
+  return 0;
 }
 
-static void mmap_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int mmap_hook(struct kprobe *kp, struct pt_regs *regs) {
   struct file *file = (struct file *)GET_KERNEL_ARG(regs, 0);
 	unsigned long addr = (unsigned long)GET_KERNEL_ARG(regs, 1);
 	unsigned long len = (unsigned long)GET_KERNEL_ARG(regs, 2);
@@ -226,21 +236,24 @@ static void mmap_hook(struct kprobe *kp, struct pt_regs *regs) {
 			printk(KERN_INFO MODULE_NAME": mmap_region[PID: %d (%s)]: addr:0x%lx -> 0x%lx\n", task_pid_nr(current), current->comm, addr, addr+len);
 		}
 	}
+  return 0;
 }
 
-static void exit_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int exit_hook(struct kprobe *kp, struct pt_regs *regs) {
 	long code = (long)GET_KERNEL_ARG(regs, 0);
 	if (syscall & LEVEL_EXEC && strcmp("khelper", current->comm)) {
 		printk(KERN_INFO MODULE_NAME": do_exit[PID: %d (%s)]: code:%lu\n", task_pid_nr(current), current->comm, code);
 	}
+  return 0;
 }
 
-static void fork_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int fork_hook(struct kprobe *kp, struct pt_regs *regs) {
 	unsigned long clone_flags = (unsigned long)GET_KERNEL_ARG(regs, 0);
 	unsigned long stack_size = (unsigned long)GET_KERNEL_ARG(regs, 2);
 	if (syscall & LEVEL_EXEC && strcmp("khelper", current->comm)) {
 		printk(KERN_INFO MODULE_NAME": do_fork[PID: %d (%s)]: clone_flags:0x%lx, stack_size:0x%lx\n", task_pid_nr(current), current->comm, clone_flags, stack_size);
 	}
+  return 0;
 }
 
 static int fork_ret_hook(struct kretprobe_instance *ri, struct pt_regs *regs) {
@@ -251,11 +264,12 @@ static int fork_ret_hook(struct kretprobe_instance *ri, struct pt_regs *regs) {
 	return 0;
 }
 
-static void close_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int close_hook(struct kprobe *kp, struct pt_regs *regs) {
 	unsigned int fd = (unsigned int)GET_KERNEL_ARG(regs, 0);
 	if (syscall & LEVEL_FS_R) {
 		printk(KERN_INFO MODULE_NAME": close[PID: %d (%s)]: fd:%d\n", task_pid_nr(current), current->comm, fd);
 	}
+  return 0;
 }
 
 static int open_ret_hook(struct kretprobe_instance *ri, struct pt_regs *regs) {
@@ -266,17 +280,18 @@ static int open_ret_hook(struct kretprobe_instance *ri, struct pt_regs *regs) {
 	return 0;
 }
 
-static void open_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int open_hook(struct kprobe *kp, struct pt_regs *regs) {
 	const char __user *filename = (const char __user *)GET_KERNEL_ARG(regs, 1);
 	int flags = (int)GET_KERNEL_ARG(regs, 2);
 	if (syscall & LEVEL_FS_R) {
 		printk(KERN_INFO MODULE_NAME": do_sys_open[PID: %d (%s)]: file:%s\n", task_pid_nr(current), current->comm, filename);
 	}
+  return 0;
 }
 
-static void execve_hook(struct kprobe *kp, struct pt_regs *regs) {
-	const char __user *const __user *argv = (const char __user *const __user *argv)GET_KERNEL_ARG(regs,1);
-	const char __user *const __user *envp = (const char __user *const __user *envp)GET_KERNEL_ARG(regs,2);
+static int execve_hook(struct kprobe *kp, struct pt_regs *regs) {
+	const char __user *const __user *argv = GET_KERNEL_ARG(regs,1);
+	const char __user *const __user *envp = GET_KERNEL_ARG(regs,2);
 	int i;
 	static char *argv_init[] = { "/firmadyne/console", NULL };
 
@@ -324,29 +339,33 @@ static void execve_hook(struct kprobe *kp, struct pt_regs *regs) {
 
 		printk("\n\n");
 	}
+  return 0;
 }
 
-static void mknod_hook(struct kprobe *kp, struct pt_regs *regs){
+static int mknod_hook(struct kprobe *kp, struct pt_regs *regs){
 	struct dentry *dentry = (struct dentry *)GET_KERNEL_ARG(regs, 1);
 	dev_t dev = (dev_t)GET_KERNEL_ARG(regs, 3);
 	if (syscall & LEVEL_FS_W) {
 		printk(KERN_INFO MODULE_NAME": vfs_mknod[PID: %d (%s)]: file:%s major:%d minor:%d\n", task_pid_nr(current), current->comm, dentry->d_name.name, MAJOR(dev), MINOR(dev));
 	}
+  return 0;
 }
 
-static void br_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int br_hook(struct kprobe *kp, struct pt_regs *regs) {
 	struct net_bridge *br = (struct net_bridge *)GET_KERNEL_ARG(regs, 0);
 	struct net_device *dev = (struct net_device *)GET_KERNEL_ARG(regs, 1);
 	if (syscall & LEVEL_NETWORK) {
 		printk(KERN_INFO MODULE_NAME": br_add_if[PID: %d (%s)]: br:%s dev:%s\n", task_pid_nr(current), current->comm, br->dev->name, dev->name);
 	}
+  return 0;
 }
 
-static void inet_hook(struct kprobe *kp, struct pt_regs *regs) {
+static int inet_hook(struct kprobe *kp, struct pt_regs *regs) {
 	struct in_ifaddr *ifa = (struct in_ifaddr *)GET_KERNEL_ARG(regs, 0);
 	if (syscall & LEVEL_NETWORK) {
 		printk(KERN_INFO MODULE_NAME": __inet_insert_ifa[PID: %d (%s)]: device:%s ifa:0x%08x\n", task_pid_nr(current), current->comm, ifa->ifa_dev->dev->name, ifa->ifa_address);
 	}
+  return 0;
 }
 
 #define HOOK_RET(a, b, c, d) \
@@ -357,14 +376,6 @@ static struct kretprobe d = { \
 		.symbol_name = a, \
 	}, \
 	.maxactive = 2*NR_CPUS, \
-};
-
-#define HOOK(a, b, c) \
-static struct jprobe c = { \
-	.entry = b, \
-	.kp = { \
-		.symbol_name = a, \
-	}, \
 };
 
 #define HOOK(a, b, c) \
