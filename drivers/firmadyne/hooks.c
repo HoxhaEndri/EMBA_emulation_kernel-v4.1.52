@@ -20,9 +20,7 @@
 
 #if defined(__x86_64__) || defined(__i386__)
 	#define ARCH_REG_FIRST_ARG 0
-#elif defined(__arm__)
-	#define ARCH_REG_FIRST_ARG 0
-#elif defined(__aarch64__)
+#elif defined(__arm__) || defined(__aarch64__)
 	#define ARCH_REG_FIRST_ARG 0
 #elif defined(__mips__)
 	#define ARCH_REG_FIRST_ARG 4
