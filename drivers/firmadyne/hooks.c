@@ -18,14 +18,28 @@
 #include "hooks.h"
 #include "hooks-private.h"
 
-#if defined(__x86_64__) || defined(__i386__)
-	#define ARCH_REG_FIRST_ARG 0
-#elif defined(__arm__) || defined(__aarch64__)
-	#define ARCH_REG_FIRST_ARG 0
-#elif defined(__mips__)
-	#define ARCH_REG_FIRST_ARG 4
+#ifdef CONFIG_X86_64
+	first = regs->di;       // First argument
+	second = regs->si;         // Second argument
+	third = regs->dx;     // Third argument
+	fourth = regs->cx;         // Fourth argument
+#elif defined(CONFIG_ARM64)
+	first = regs->regs[0];
+	second = regs->regs[1];
+	third = regs->regs[2];
+	fourth = regs->regs[3];
+#elif defined(CONFIG_ARM)
+	first = regs->uregs[0];
+	second = regs->uregs[1];
+	third = regs->uregs[2];
+	fourth = regs->uregs[3];
+#elif defined(CONFIG_MIPS)
+	first = regs->regs[4];
+	second = regs->regs[5];
+	third = regs->regs[6];
+	fourth = regs->regs[7];
 #else
-	#error "Unsupported architecture"
+	#error "Unsupported architecture!"
 #endif
 
 //#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
