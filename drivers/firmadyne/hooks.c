@@ -18,6 +18,25 @@
 #include "hooks.h"
 #include "hooks-private.h"
 
+#define ARCH_X86_64 1
+#define ARCH_ARM64 2
+#define ARCH_ARM 3
+#define ARCH_MIPS 4
+#define ARCH_UNKNOWN 0
+
+// Define the architecture based on the kernel config flags
+#ifdef CONFIG_X86_64
+    #define arch ARCH_X86_64
+#elif defined(CONFIG_ARM64)
+    #define arch ARCH_ARM64
+#elif defined(CONFIG_ARM)
+    #define arch ARCH_ARM
+#elif defined(CONFIG_MIPS)
+    #define arch ARCH_MIPS
+#else
+    #define arch ARCH_UNKNOWN
+#endif
+
 #define GET_ARG(n, regs)   \
     ((arch == ARCH_X86_64) ? ((n) == 1 ? regs->di : \
                                (n) == 2 ? regs->si : \
