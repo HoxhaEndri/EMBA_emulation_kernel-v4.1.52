@@ -24,36 +24,34 @@
 #define ARCH_MIPS 4
 #define ARCH_UNKNOWN 0
 
-// Define the architecture based on the kernel config flags
+// Define the macro to get arguments based on the architecture
 #ifdef CONFIG_X86_64
-    #define arch ARCH_X86_64
+	#define GET_ARG(n, regs)   \
+		((n) == 1 ? (regs)->di : \
+		 (n) == 2 ? (regs)->si : \
+		 (n) == 3 ? (regs)->dx : \
+		 (n) == 4 ? (regs)->cx : 0)
 #elif defined(CONFIG_ARM64)
-    #define arch ARCH_ARM64
+	#define GET_ARG(n, regs)   \
+		((n) == 1 ? (regs)->regs[0] : \
+		 (n) == 2 ? (regs)->regs[1] : \
+		 (n) == 3 ? (regs)->regs[2] : \
+		 (n) == 4 ? (regs)->regs[3] : 0)
 #elif defined(CONFIG_ARM)
-    #define arch ARCH_ARM
+	#define GET_ARG(n, regs)   \
+		((n) == 1 ? (regs)->uregs[0] : \
+		 (n) == 2 ? (regs)->uregs[1] : \
+		 (n) == 3 ? (regs)->uregs[2] : \
+		 (n) == 4 ? (regs)->uregs[3] : 0)
 #elif defined(CONFIG_MIPS)
-    #define arch ARCH_MIPS
+	#define GET_ARG(n, regs)   \
+		((n) == 1 ? (regs)->regs[4] : \
+		 (n) == 2 ? (regs)->regs[5] : \
+		 (n) == 3 ? (regs)->regs[6] : \
+		 (n) == 4 ? (regs)->regs[7] : 0)
 #else
-    #define arch ARCH_UNKNOWN
+	#define GET_ARG(n, regs) (0)  // Default case for unsupported architectures
 #endif
-
-#define GET_ARG(n, regs)   \
-    ((arch == ARCH_X86_64) ? ((n) == 1 ? regs->di : \
-                               (n) == 2 ? regs->si : \
-                               (n) == 3 ? regs->dx : \
-                               (n) == 4 ? regs->cx : 0) : \
-     (arch == ARCH_ARM64) ? ((n) == 1 ? regs->regs[0] : \
-                              (n) == 2 ? regs->regs[1] : \
-                              (n) == 3 ? regs->regs[2] : \
-                              (n) == 4 ? regs->regs[3] : 0) : \
-     (arch == ARCH_ARM) ? ((n) == 1 ? regs->uregs[0] : \
-                            (n) == 2 ? regs->uregs[1] : \
-                            (n) == 3 ? regs->uregs[2] : \
-                            (n) == 4 ? regs->uregs[3] : 0) : \
-     (arch == ARCH_MIPS) ? ((n) == 1 ? regs->regs[4] : \
-                             (n) == 2 ? regs->regs[5] : \
-                             (n) == 3 ? regs->regs[6] : \
-                             (n) == 4 ? regs->regs[7] : 0) : 0)
 
 /* Network related operations; e.g. bind, accept, etc */
 #define LEVEL_NETWORK (1 << 0)
