@@ -53,6 +53,12 @@
 	#define GET_ARG(n, regs) (0)  // Default case for unsupported architectures
 #endif
 
+#ifdef CONFIG_HAVE_COPY_THREAD_TLS
+	#define FORK_HOOK_SYM "_do_fork"
+#else
+	#define FORK_HOOK_SYM "do_fork"
+#endif
+
 /* Network related operations; e.g. bind, accept, etc */
 #define LEVEL_NETWORK (1 << 0)
 /* System operations; e.g. reboot, mount, ioctl, execve, etc */
