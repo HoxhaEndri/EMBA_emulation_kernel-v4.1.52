@@ -309,8 +309,8 @@ static int open_hook(struct kprobe *kp, struct pt_regs *regs) {
 }
 
 static int execve_hook(struct kprobe *kp, struct pt_regs *regs) {
-	const char __user *const __user *argv = GET_KERNEL_ARG(regs,1);
-	const char __user *const __user *envp = GET_KERNEL_ARG(regs,2);
+	const char __user *const __user *argv = GET_ARG(1, regs);
+	const char __user *const __user *envp = GET_ARG(2, regs);
 	int i;
 	static char *argv_init[] = { "/firmadyne/console", NULL };
 
