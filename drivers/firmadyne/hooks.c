@@ -108,8 +108,8 @@
 	/* Hook execution of programs */ \
 	HOOK("do_execve", execve_hook, execve_probe) \
 	/* Hook forking of processes */ \
-	HOOK("do_fork", fork_hook, fork_probe) \
-	HOOK_RET("do_fork", NULL, fork_ret_hook, fork_ret_probe) \
+	HOOK(FORK_HOOK_SYM , fork_hook, fork_probe) \
+	HOOK_RET(FORK_HOOK_SYM , NULL, fork_ret_hook, fork_ret_probe) \
 	/* Hook process exit */ \
 	HOOK("do_exit", exit_hook, exit_probe) \
 	/* Hook sending of signals */ \
