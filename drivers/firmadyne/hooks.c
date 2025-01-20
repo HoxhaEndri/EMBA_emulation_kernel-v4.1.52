@@ -18,14 +18,14 @@
 #include "hooks.h"
 #include "hooks-private.h"
 
-#define ARCH_X86_64 1
-#define ARCH_ARM64 2
-#define ARCH_ARM 3
-#define ARCH_MIPS 4
-#define ARCH_UNKNOWN 0
-
 // Define the macro to get arguments based on the architecture
 #ifdef CONFIG_X86_64
+	#define GET_ARG(n, regs)   \
+		((n) == 1 ? (regs)->di : \
+		 (n) == 2 ? (regs)->si : \
+		 (n) == 3 ? (regs)->dx : \
+		 (n) == 4 ? (regs)->cx : 0)
+#elif defined(CONFIG_X86_32)
 	#define GET_ARG(n, regs)   \
 		((n) == 1 ? (regs)->di : \
 		 (n) == 2 ? (regs)->si : \
