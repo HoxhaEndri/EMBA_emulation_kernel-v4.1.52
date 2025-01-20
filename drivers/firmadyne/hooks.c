@@ -25,12 +25,12 @@
 		 (n) == 2 ? (regs)->si : \
 		 (n) == 3 ? (regs)->dx : \
 		 (n) == 4 ? (regs)->cx : 0)
-#elif defined(CONFIG_X86_32)
-	#define GET_ARG(n, regs)   \
-		((n) == 1 ? (regs)->edi : \
-		 (n) == 2 ? (regs)->esi : \
-		 (n) == 3 ? (regs)->edx : \
-		 (n) == 4 ? (regs)->ecx : 0)
+#elif defined(CONFIG_X86_32) || defined(CONFIG_X86)
+  #define GET_ARG(n, regs)   \
+    ((n) == 1 ? *((unsigned long *)((regs)->sp) + 1) : \
+     (n) == 2 ? *((unsigned long *)((regs)->sp) + 2) : \
+     (n) == 3 ? *((unsigned long *)((regs)->sp) + 3) : \
+     (n) == 4 ? *((unsigned long *)((regs)->sp) + 4) : 0)
 #elif defined(CONFIG_ARM64)
 	#define GET_ARG(n, regs)   \
 		((n) == 1 ? (regs)->regs[0] : \
