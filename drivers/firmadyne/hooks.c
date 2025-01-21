@@ -27,10 +27,10 @@
 		 (n) == 4 ? (regs)->cx : 0)
 #elif defined(CONFIG_X86_32) || defined(CONFIG_X86)
   #define GET_ARG(n, regs)   \
-    ((n) == 1 ? *((unsigned long *)((regs)->sp) + 1) : \
-     (n) == 2 ? *((unsigned long *)((regs)->sp) + 2) : \
-     (n) == 3 ? *((unsigned long *)((regs)->sp) + 3) : \
-     (n) == 4 ? *((unsigned long *)((regs)->sp) + 4) : 0)
+    ((n) == 1 ? (regs)->ax : \
+     (n) == 2 ? (regs)->dx : \
+     (n) == 3 ? (regs)->cx : \
+     (n) == 4 ? *((unsigned long *)((regs)->sp) + 1) : 0)
 #elif defined(CONFIG_ARM64)
 	#define GET_ARG(n, regs)   \
 		((n) == 1 ? (regs)->regs[0] : \
