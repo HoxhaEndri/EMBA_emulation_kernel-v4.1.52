@@ -3,6 +3,7 @@
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h>
+#include <linux/seq_file.h>
 
 #include "procfs_stubs.h"
 #include "firmadyne.h"
@@ -60,11 +61,11 @@ static ssize_t write(struct file *file, const char __user *buf, size_t size, lof
 #define DIR(a, b) \
 	static struct proc_dir_entry *a##_dir;
 
-#define FILE(a, b, c, d) \
-	static const struct file_operations a##_fops = { \
-		.owner = THIS_MODULE, \
-		.read = b, \
-		.write = c, \
+#define FILE(a, b, c, d)                                      \
+	static const struct proc_ops a##_proc_ops = {         \
+		.proc_read  = b,                               \
+		.proc_write = c,                               \
+		.proc_lseek = default_llseek,                  \
 	};
 
 	STUB_ENTRIES
@@ -85,7 +86,7 @@ int register_procfs_stubs(void) {
 	}
 
 #define FILE(a, b, c, d) \
-	if (!proc_create_data(#a, 0666, d, &a##_fops, NULL)) { \
+	if (!proc_create_data(#a, 0666, d, &a##_proc_ops, NULL)) { \
 		printk(KERN_WARNING MODULE_NAME": Cannot register procfs file: %s!\n", #a); \
 		ret = -1; \
 	}
