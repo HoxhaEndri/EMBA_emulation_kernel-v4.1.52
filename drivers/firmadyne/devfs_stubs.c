@@ -127,7 +127,7 @@ static int acl(struct device *dev, struct kobj_uevent_env *env) {
 }
 
 #define DEVICE(a, b, c, d, e, f, g, h) \
-	static dev_t a##_devno = MKDEV(b, c); \
+	static dev_t a##_devno; \
 	static struct cdev a##_cdev; \
 	static struct class *a##_class; \
 	static struct device *a##_dev; \
@@ -151,7 +151,13 @@ int register_devfs_stubs(void) {
 	}
 
 #define DEVICE(a, b, c, d, e, f, g, h) \
-	if ((ret = register_chrdev_region(a##_devno, 1, #a)) < 0) { \
+        if (b){ \
+          a##_devno = MKDEV(b, c); \
+          ret = register_chrdev_region(a##_devno, 1, #a); \
+        } else{ \
+          ret = alloc_chrdev_region(&a##_devno, c, 1, #a); \
+          } \
+	if (ret < 0) { \
 		printk(KERN_WARNING MODULE_NAME": Cannot register character device: %s, 0x%x, 0x%x!\n", #a, MAJOR(a##_devno), MINOR(a##_devno)); \
 		goto a##_out; \
 	} \
