@@ -53,12 +53,6 @@
 	#define GET_ARG(n, regs) (0)  // Default case for unsupported architectures
 #endif
 
-#ifdef CONFIG_HAVE_COPY_THREAD_TLS
-	#define FORK_HOOK_SYM "_do_fork"
-#else
-	#define FORK_HOOK_SYM "do_fork"
-#endif
-
 /* Network related operations; e.g. bind, accept, etc */
 #define LEVEL_NETWORK (1 << 0)
 /* System operations; e.g. reboot, mount, ioctl, execve, etc */
@@ -84,9 +78,9 @@
 	/* Hook adding of interfaces to bridges */ \
 	HOOK("br_add_if", br_hook, br_probe) \
 	/* Hook socket calls */ \
-	HOOK("sys_socket", socket_hook, socket_probe) \
+	HOOK("__sys_socket", socket_hook, socket_probe) \
 	/* Hook changes in socket options */ \
-	HOOK("sys_setsockopt", setsockopt_hook, setsockopt_probe) \
+	HOOK("__sys_setsockopt", setsockopt_hook, setsockopt_probe) \
 \
 	/* Hook mounting of file systems */ \
 	HOOK("do_mount", mount_hook, mount_probe) \
@@ -95,21 +89,21 @@
 	/* Hook deletion of files */ \
 	HOOK("vfs_unlink", unlink_hook, unlink_probe) \
 	/* Hook IOCTL's on files */ \
-	HOOK("do_vfs_ioctl", ioctl_hook, ioctl_probe) \
+	HOOK("sys_ioctl", ioctl_hook, ioctl_probe) \
 	/* Hook system reboot */ \
 	HOOK("sys_reboot", reboot_hook, reboot_probe) \
 \
 	/* Hook opening of file descriptors */ \
-	HOOK("do_sys_open", open_hook, open_probe) \
-/*	HOOK_RET("do_sys_open", NULL, open_ret_hook, open_ret_probe) */ \
+	HOOK("do_sys_openat2", open_hook, open_probe) \
+/*	HOOK_RET("do_sys_openat2", NULL, open_ret_hook, open_ret_probe) */ \
 	/* Hook closing of file descriptors */ \
 	HOOK("sys_close", close_hook, close_probe) \
 \
 	/* Hook execution of programs */ \
-	HOOK("do_execve", execve_hook, execve_probe) \
+	HOOK("do_execveat_common", execve_hook, execve_probe) \
 	/* Hook forking of processes */ \
-	HOOK(FORK_HOOK_SYM , fork_hook, fork_probe) \
-	HOOK_RET(FORK_HOOK_SYM , NULL, fork_ret_hook, fork_ret_probe) \
+	HOOK("sys_clone" , fork_hook, fork_probe) \
+	HOOK_RET("sys_clone" , NULL, fork_ret_hook, fork_ret_probe) \
 	/* Hook process exit */ \
 	HOOK("do_exit", exit_hook, exit_probe) \
 	/* Hook sending of signals */ \
@@ -206,7 +200,7 @@ static int ioctl_hook(struct kprobe *kp, struct pt_regs *regs) {
 }
 
 static int unlink_hook(struct kprobe *kp, struct pt_regs *regs) {
-	struct dentry *dentry = (struct dentry *)GET_ARG(2, regs);
+	struct dentry *dentry = (struct dentry *)GET_ARG(3, regs);
 	if (syscall & LEVEL_FS_W) {
 		printk(KERN_INFO MODULE_NAME": vfs_unlink[PID: %d (%s)]: file:%s\n", task_pid_nr(current), current->comm, dentry->d_name.name);
 	}
@@ -274,9 +268,8 @@ static int exit_hook(struct kprobe *kp, struct pt_regs *regs) {
 
 static int fork_hook(struct kprobe *kp, struct pt_regs *regs) {
 	unsigned long clone_flags = (unsigned long)GET_ARG(1, regs);
-	unsigned long stack_size = (unsigned long)GET_ARG(3, regs);
 	if (syscall & LEVEL_EXEC && strcmp("khelper", current->comm)) {
-		printk(KERN_INFO MODULE_NAME": do_fork[PID: %d (%s)]: clone_flags:0x%lx, stack_size:0x%lx\n", task_pid_nr(current), current->comm, clone_flags, stack_size);
+		printk(KERN_INFO MODULE_NAME": do_fork[PID: %d (%s)]: clone_flags:0x%lx\n", task_pid_nr(current), current->comm, clone_flags);
 	}
   return 0;
 }
@@ -307,7 +300,13 @@ static int open_ret_hook(struct kretprobe_instance *ri, struct pt_regs *regs) {
 
 static int open_hook(struct kprobe *kp, struct pt_regs *regs) {
 	const char __user *filename = (const char __user *)GET_ARG(2, regs);
-	int flags = (int)GET_ARG(3, regs);
+	struct open_how *how = (struct open_how *)GET_ARG(3, regs);
+	__u64 flags = 0;
+
+	if (how) {
+		flags = how->flags;
+	}
+
 	if (syscall & LEVEL_FS_R) {
 		printk(KERN_INFO MODULE_NAME": do_sys_open[PID: %d (%s)]: file:%s\n", task_pid_nr(current), current->comm, filename);
 	}
@@ -315,8 +314,8 @@ static int open_hook(struct kprobe *kp, struct pt_regs *regs) {
 }
 
 static int execve_hook(struct kprobe *kp, struct pt_regs *regs) {
-	const char __user *const __user *argv = GET_ARG(1, regs);
-	const char __user *const __user *envp = GET_ARG(2, regs);
+	const char __user *const __user *argv = GET_ARG(3, regs);
+	const char __user *const __user *envp = GET_ARG(4, regs);
 	int i;
 	static char *argv_init[] = { "/firmadyne/console", NULL };
 
@@ -368,8 +367,8 @@ static int execve_hook(struct kprobe *kp, struct pt_regs *regs) {
 }
 
 static int mknod_hook(struct kprobe *kp, struct pt_regs *regs){
-	struct dentry *dentry = (struct dentry *)GET_ARG(2, regs);
-	dev_t dev = (dev_t)GET_ARG(4, regs);
+	struct dentry *dentry = (struct dentry *)GET_ARG(3, regs);
+	dev_t dev = (dev_t)GET_ARG(5, regs);
 	if (syscall & LEVEL_FS_W) {
 		printk(KERN_INFO MODULE_NAME": vfs_mknod[PID: %d (%s)]: file:%s major:%d minor:%d\n", task_pid_nr(current), current->comm, dentry->d_name.name, MAJOR(dev), MINOR(dev));
 	}

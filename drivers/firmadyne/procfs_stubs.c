@@ -32,7 +32,7 @@
 
 static ssize_t read(struct file *file, char __user *buf, size_t size, loff_t *offset) {
 	const char data[] = "0";
-	loff_t count = min((loff_t) size, ARRAY_SIZE(data) - *offset);
+	loff_t count = min((loff_t) size, (loff_t)ARRAY_SIZE(data) - *offset);
 
 	if (!devfs) {
 		return -EINVAL;
